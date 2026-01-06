@@ -1,7 +1,7 @@
 name: sm_form
 description: '一个功能强大的 Flutter 表单组件库，基于 `hooks_riverpod` 构建，提供完整的表单管理、校验、提交、联动和监听功能。'
 version: 1.0.0
-homepage:
+homepage: https://github.com/song-meng/sm_form.git
 
 environment:
   sdk: ^3.5.4
