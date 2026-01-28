@@ -4,6 +4,12 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.0.1+1] - 2024
+
+### 变更
+
+- 🔧 **更新 flutter_hooks 版本**
+
 ## [1.0.0] - 2024
 
 ### 新增功能
