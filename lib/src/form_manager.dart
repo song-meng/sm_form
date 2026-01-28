@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'models/form_field_model.dart';
@@ -74,7 +75,9 @@ class FormManager extends StateNotifier<form_models.FormState> {
       updatedField.onChanged?.call(value);
     } catch (e) {
       // 忽略回调中的错误，避免影响状态更新
-      print('Error in onChanged callback for $name: $e');
+      if (kDebugMode) {
+        print('Error in onChanged callback for $name: $e');
+      }
     }
 
     // 清除之前的错误
@@ -408,7 +411,9 @@ class FormManager extends StateNotifier<form_models.FormState> {
       try {
         updatedField.onChanged?.call(newValue);
       } catch (e) {
-        print('Error in onChanged callback for $fieldName: $e');
+        if (kDebugMode) {
+          print('Error in onChanged callback for $fieldName: $e');
+        }
       }
 
       // 清除错误信息
@@ -527,7 +532,9 @@ class FormManager extends StateNotifier<form_models.FormState> {
           field.onChanged?.call(field.value);
         } catch (e) {
           // 忽略回调中的错误，避免影响其他字段
-          print('Error in dependency callback for ${entry.key}: $e');
+          if (kDebugMode) {
+            print('Error in dependency callback for ${entry.key}: $e');
+          }
         }
       }
     }

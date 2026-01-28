@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sm_form/sm_form.dart';
@@ -46,7 +47,9 @@ class _CustomFieldExamplePageState extends ConsumerState<CustomFieldExamplePage>
         formId: 'custom_form',
         fields: fields,
         onInitialized: () {
-          print('表单初始化完成');
+          if (kDebugMode) {
+            print('表单初始化完成');
+          }
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -78,7 +81,9 @@ class _CustomFieldExamplePageState extends ConsumerState<CustomFieldExamplePage>
                 formId: 'custom_form',
                 text: '提交',
                 onSubmit: (values) async {
-                  print('表单提交成功: $values');
+                  if (kDebugMode) {
+                    print('表单提交成功: $values');
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('提交成功: $values')),
                   );

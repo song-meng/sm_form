@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sm_form/sm_form.dart';
@@ -214,7 +215,9 @@ class FormExamplePage extends StatelessWidget {
         formId: 'example_form',
         fields: fields,
         onInitialized: () {
-          print('表单初始化完成');
+          if (kDebugMode) {
+            print('表单初始化完成');
+          }
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -323,7 +326,9 @@ class FormValueListener extends ConsumerWidget {
       ref,
       formId,
       (name, value) {
-        print('字段 $name 的值变为: $value');
+        if (kDebugMode) {
+          print('字段 $name 的值变为: $value');
+        }
       },
     );
 

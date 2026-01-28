@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sm_form/sm_form.dart';
@@ -101,7 +102,9 @@ class MultiFormExamplePage extends StatelessWidget {
                             text: '提交用户信息',
                             onSubmit: (values) async {
                               await Future.delayed(const Duration(seconds: 1));
-                              print('表单1提交的数据: $values');
+                              if (kDebugMode) {
+                                print('表单1提交的数据: $values');
+                              }
                               return values;
                             },
                             onSuccess: (result) {
@@ -154,7 +157,9 @@ class MultiFormExamplePage extends StatelessWidget {
                             text: '提交产品信息',
                             onSubmit: (values) async {
                               await Future.delayed(const Duration(seconds: 1));
-                              print('表单2提交的数据: $values');
+                              if (kDebugMode) {
+                                print('表单2提交的数据: $values');
+                              }
                               return values;
                             },
                             onSuccess: (result) {
