@@ -41,14 +41,30 @@ class FormManager extends StateNotifier<form_models.FormState> {
     state = state.copyWith(fields: fields);
   }
 
-  /// 注册多个字段
+  /// 注册多个字段（批量更新，只触发一次状态更新）
   void registerFields(Map<String, FormFieldModel<dynamic>> fields) {
+    if (fields.isEmpty) return;
+    
+    final newFields = Map<String, FormFieldModel<dynamic>>.from(state.fields);
     for (final field in fields.values) {
-      // 由于字段已经是 dynamic 类型，直接注册
-      final newFields = Map<String, FormFieldModel<dynamic>>.from(state.fields);
       newFields[field.name] = field;
-      state = state.copyWith(fields: newFields);
     }
+    
+    final isValid = _calculateIsValid(newFields, state.errors);
+    state = state.copyWith(fields: newFields, isValid: isValid);
+  }
+  
+  /// 注销字段
+  void unregisterField(String name) {
+    final fields = Map<String, FormFieldModel<dynamic>>.from(state.fields);
+    final errors = Map<String, String?>.from(state.errors);
+    
+    fields.remove(name);
+    errors.remove(name);
+    _fieldKeys.remove(name);
+    
+    final isValid = _calculateIsValid(fields, errors);
+    state = state.copyWith(fields: fields, errors: errors, isValid: isValid);
   }
 
   /// 更新字段值
@@ -314,28 +330,44 @@ class FormManager extends StateNotifier<form_models.FormState> {
     }
   }
 
-  /// 重置表单
+  /// 重置表单（恢复到初始值）
   void reset() {
     final fields = Map<String, FormFieldModel<dynamic>>.from(state.fields);
-    for (final field in fields.values) {
-      field.reset();
+    final newFields = <String, FormFieldModel<dynamic>>{};
+    
+    for (final entry in fields.entries) {
+      newFields[entry.key] = entry.value.reset();
     }
 
     state = form_models.FormState(
-      fields: fields,
+      fields: newFields,
     );
   }
 
-  /// 清除表单
+  /// 清除表单（清空所有值）
   void clear() {
     final fields = Map<String, FormFieldModel<dynamic>>.from(state.fields);
-    for (final field in fields.values) {
-      field.clear();
+    final newFields = <String, FormFieldModel<dynamic>>{};
+    
+    for (final entry in fields.entries) {
+      newFields[entry.key] = entry.value.clear();
     }
 
     state = form_models.FormState(
-      fields: fields,
+      fields: newFields,
     );
+  }
+  
+  /// 设置字段可见性
+  void setFieldVisible(String name, bool visible) {
+    final fields = Map<String, FormFieldModel<dynamic>>.from(state.fields);
+    final field = fields[name];
+    if (field == null) return;
+
+    fields[name] = field.copyWith(visible: visible);
+    
+    final isValid = _calculateIsValid(fields, state.errors);
+    state = state.copyWith(fields: fields, isValid: isValid);
   }
 
   /// 设置字段错误
@@ -541,15 +573,27 @@ class FormManager extends StateNotifier<form_models.FormState> {
   }
 
   /// 计算表单是否有效
+  /// 只考虑可见且未禁用的必填字段
   bool _calculateIsValid(
     Map<String, FormFieldModel<dynamic>> fields,
     Map<String, String?> errors,
   ) {
-    if (errors.isNotEmpty) return false;
-
-    for (final field in fields.values) {
-      if (field.required && (field.value == null || (field.value is String && (field.value as String).trim().isEmpty))) {
+    // 检查错误（只考虑可见字段的错误）
+    for (final entry in errors.entries) {
+      final field = fields[entry.key];
+      if (field != null && field.visible && !field.disabled && entry.value != null) {
         return false;
+      }
+    }
+
+    // 检查必填字段
+    for (final field in fields.values) {
+      // 只检查可见且未禁用的必填字段
+      if (field.visible && !field.disabled && field.required) {
+        final value = field.value;
+        if (value == null || (value is String && value.trim().isEmpty)) {
+          return false;
+        }
       }
     }
 
@@ -558,6 +602,6 @@ class FormManager extends StateNotifier<form_models.FormState> {
 }
 
 /// 表单管理器 Provider
-final formManagerProvider = StateNotifierProvider.family<FormManager, form_models.FormState, String>(
+final formManagerProvider = StateNotifierProvider.family.autoDispose<FormManager, form_models.FormState, String>(
   (ref, formId) => FormManager(),
 );

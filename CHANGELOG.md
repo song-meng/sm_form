@@ -4,6 +4,41 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] - 2026
+
+### 新增功能
+
+- ✅ **字段可见性控制** - 新增 `visible` 属性，支持通过联动隐藏字段（从组件树中移除）
+- ✅ **新增校验器** - `url`、`password`、`match`、`idCard`、`numeric`、`alpha`、`alphanumeric`、`integer`、`positive`、`when`（条件校验）
+- ✅ **字段注销** - 新增 `unregisterField` 方法，支持动态移除字段
+- ✅ **设置字段可见性** - 新增 `setFieldVisible` 方法
+- ✅ **提交按钮增强** - 支持 `validateBeforeSubmit`、`onValidationFailed`、`loadingIndicator`、`child` 参数
+- ✅ **字段组件增强** - `SmTextField` 支持 `minLines`、`maxLength`、`autofocus`、`readOnly` 参数
+- ✅ **数字字段增强** - `SmNumberField` 支持 `decimal`（小数）、`autofocus`、`readOnly` 参数
+- ✅ **复选框增强** - `SmCheckboxField` 支持 `contentPadding`，点击文字也可触发选择
+- ✅ **单选组增强** - `SmRadioGroupField` 支持 `direction`（横向/纵向）、`contentPadding` 参数
+- ✅ **工具类导出** - 新增 `FieldConverter` 工具类，方便类型转换
+
+### 优化
+
+- 🔧 **批量注册优化** - `registerFields` 方法改为批量更新，只触发一次状态更新
+- 🔧 **Hooks 修复** - 修复 `SmTextField`、`SmNumberField` 中 hooks 在 builder 内部调用的问题
+- 🔧 **reset/clear 修复** - `reset()` 和 `clear()` 方法现在返回新实例，正确触发状态更新
+- 🔧 **提交按钮逻辑优化** - 未验证过的表单允许点击提交（会触发验证），避免初始状态的误导
+- 🔧 **有效性计算优化** - `_calculateIsValid` 只考虑可见且未禁用的必填字段
+- 🔧 **代码复用** - 提取 `FieldConverter` 工具类，消除 `SmForm` 和 `SmFormWithDependency` 中的重复代码
+- 🔧 **required 属性** - `FormFieldModel.required` 改为可变属性，支持联动时动态修改
+
+### 移除
+
+- 🗑️ **FormDependencyManager** - 移除未使用的 `FormDependencyManager` 类（功能已由 `SmFormWithDependency` 提供）
+
+### 修复
+
+- 🐛 **循环更新** - 修复文本字段更新时可能的循环调用问题
+- 🐛 **下拉框值清除** - 修复重复调度清除操作的问题
+- 🐛 **formId 变化处理** - `SmForm` 和 `SmFormWithDependency` 现在正确处理 `formId` 变化
+
 ## [1.0.1+1] - 2024
 
 ### 变更

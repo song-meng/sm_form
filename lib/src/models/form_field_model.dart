@@ -10,7 +10,7 @@ class FormFieldModel<T> {
   final T? initialValue;
 
   /// 是否必填
-  final bool required;
+  bool required;
 
   /// 校验规则列表
   final List<FormFieldValidator<T>> validators;
@@ -26,6 +26,9 @@ class FormFieldModel<T> {
 
   /// 是否只读
   bool readOnly = false;
+
+  /// 是否可见（用于联动显示/隐藏）
+  bool visible = true;
 
   /// 字段标签
   final String? label;
@@ -51,13 +54,15 @@ class FormFieldModel<T> {
     this.label,
     this.hint,
     this.dependencies = const [],
+    this.visible = true,
     this.onChanged,
     this.onFocusChange,
-  }) : value = value ?? initialValue {
-    // value 已经在初始化列表中设置：如果传入了 value 就使用 value，否则使用 initialValue
-  }
+  }) : value = value ?? initialValue;
 
   /// 复制字段模型
+  /// 
+  /// [clearErrorText] 是否清除错误信息
+  /// [updateValue] 是否强制更新值（用于区分 "不传值" 和 "传入 null"）
   FormFieldModel<T> copyWith({
     String? name,
     T? value,
@@ -68,62 +73,79 @@ class FormFieldModel<T> {
     String? errorText,
     bool? disabled,
     bool? readOnly,
+    bool? visible,
     String? label,
     String? hint,
     List<String>? dependencies,
     ValueChanged<T?>? onChanged,
     ValueChanged<bool>? onFocusChange,
-    bool clearErrorText = false, // 新增参数：是否清除错误信息
-    bool updateValue = false, // 新增参数：是否更新值（用于区分 null 和不更新）
+    bool clearErrorText = false,
+    bool updateValue = false,
   }) {
     // 确定要使用的值
-    final newValue = updateValue ? value : (value ?? this.value);
+    final T? newValue = updateValue ? value : (value ?? this.value);
 
-    // 如果 updateValue 为 true，传入 null 作为 initialValue，避免构造函数覆盖 value
     final model = FormFieldModel<T>(
       name: name ?? this.name,
       value: newValue,
+      // 如果 updateValue 为 true，不传 initialValue，避免构造函数用 initialValue 覆盖 null 值
       initialValue: updateValue ? null : (initialValue ?? this.initialValue),
       required: required ?? this.required,
       validators: validators ?? this.validators,
       label: label ?? this.label,
       hint: hint ?? this.hint,
       dependencies: dependencies ?? this.dependencies,
+      visible: visible ?? this.visible,
       onChanged: onChanged ?? this.onChanged,
       onFocusChange: onFocusChange ?? this.onFocusChange,
-    )
-      ..validated = validated ?? this.validated
-      ..disabled = disabled ?? this.disabled
-      ..readOnly = readOnly ?? this.readOnly;
-
-    // 如果 updateValue 为 true，确保值被正确设置
-    // 即使 newValue 是 null，也要使用它（而不是 initialValue）
+    );
+    
+    // 设置可变属性
+    model.validated = validated ?? this.validated;
+    model.disabled = disabled ?? this.disabled;
+    model.readOnly = readOnly ?? this.readOnly;
+    model.visible = visible ?? this.visible;
+    
+    // 如果 updateValue 为 true，确保值被正确设置（即使是 null）
     if (updateValue) {
       model.value = newValue;
     }
 
-    // 处理 errorText：如果 clearErrorText 为 true 或 errorText 不为 null，则更新
+    // 处理 errorText
     if (clearErrorText) {
       model.errorText = null;
+    } else if (errorText != null) {
+      model.errorText = errorText;
     } else {
-      model.errorText = errorText ?? this.errorText;
+      model.errorText = this.errorText;
     }
 
     return model;
   }
 
-  /// 重置字段
-  void reset() {
-    value = initialValue;
-    validated = false;
-    errorText = null;
+  /// 重置字段（返回新的 FormFieldModel 实例）
+  FormFieldModel<T> reset() {
+    return copyWith(
+      value: initialValue,
+      validated: false,
+      clearErrorText: true,
+      updateValue: true,
+    );
   }
 
-  /// 清除值
-  void clear() {
-    value = null;
-    validated = false;
-    errorText = null;
+  /// 清除值（返回新的 FormFieldModel 实例）
+  FormFieldModel<T> clear() {
+    return copyWith(
+      value: null,
+      validated: false,
+      clearErrorText: true,
+      updateValue: true,
+    );
+  }
+  
+  @override
+  String toString() {
+    return 'FormFieldModel(name: $name, value: $value, required: $required, visible: $visible, validated: $validated, errorText: $errorText)';
   }
 }
 

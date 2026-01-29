@@ -4,18 +4,20 @@
 
 ## 功能特性
 
-- ✅ **表单管理** - 统一管理表单状态和字段
+- ✅ **表单管理** - 统一管理表单状态和字段，支持动态注册/注销字段
 - ✅ **表单提交** - 支持异步提交和提交状态管理
-- ✅ **表单校验** - 内置常用校验器，支持自定义校验规则
+- ✅ **表单校验** - 内置丰富的校验器（必填、邮箱、手机号、URL、密码强度、身份证等），支持自定义校验规则
 - ✅ **表单值派发** - 自动同步表单值变化
 - ✅ **表单联动** - 声明式配置，自动处理字段显示/隐藏、必填状态、选项更新
 - ✅ **表单监听** - 监听表单值、错误、状态等变化
-- ✅ **多种字段类型** - 文本、数字、下拉、复选框、单选等
+- ✅ **多种字段类型** - 文本、数字、下拉、复选框、单选等，支持丰富的配置参数
 - ✅ **动态选项** - 支持根据依赖字段动态更新下拉选项
 - ✅ **自动校验** - 支持失去焦点时自动校验
 - ✅ **实时校验** - 输入后自动清除错误，已校验字段实时重新校验
 - ✅ **自动滚动** - 提交失败时自动滚动到错误字段
 - ✅ **多表单支持** - 同一页面可同时使用多个独立表单
+- ✅ **字段可见性** - 支持通过联动或手动控制字段显示/隐藏（从组件树中移除）
+- ✅ **批量赋值** - `patch` 方法支持批量设置字段值，自动按依赖顺序更新并触发联动
 
 ## 安装
 
@@ -136,6 +138,13 @@ SmTextField(
   obscureText: false,  // 密码输入
   keyboardType: TextInputType.emailAddress,
   prefixIcon: Icon(Icons.person),
+  suffixIcon: Icon(Icons.clear),
+  maxLines: 1,
+  minLines: 1,
+  maxLength: 100,
+  autofocus: false,
+  readOnly: false,
+  validateOnBlur: true,  // 失去焦点时校验
 )
 ```
 
@@ -146,7 +155,12 @@ SmNumberField(
   formId: 'form_id',
   name: 'age',
   label: '年龄',
+  hint: '请输入年龄',
   prefixIcon: Icon(Icons.calendar_today),
+  decimal: false,  // 是否允许小数
+  autofocus: false,
+  readOnly: false,
+  validateOnBlur: true,
 )
 ```
 
@@ -157,6 +171,8 @@ SmDropdownField<String>(
   formId: 'form_id',
   name: 'gender',
   label: '性别',
+  hint: '请选择',
+  isExpanded: true,
   items: [
     DropdownMenuItem(value: 'male', child: Text('男')),
     DropdownMenuItem(value: 'female', child: Text('女')),
@@ -171,6 +187,8 @@ SmCheckboxField(
   formId: 'form_id',
   name: 'agree',
   label: '同意用户协议',
+  tristate: false,  // 三态复选框
+  contentPadding: EdgeInsets.zero,
 )
 ```
 
@@ -181,6 +199,8 @@ SmRadioGroupField<String>(
   formId: 'form_id',
   name: 'option',
   label: '选项',
+  direction: Axis.vertical,  // 或 Axis.horizontal
+  contentPadding: EdgeInsets.zero,
   options: [
     RadioOption(value: 'option1', label: '选项1'),
     RadioOption(value: 'option2', label: '选项2'),
@@ -318,6 +338,45 @@ CommonValidators.range(min: 0, max: 100)
 // 正则表达式
 CommonValidators.pattern(RegExp(r'^\d+$'), message: '只能输入数字')
 
+// URL 校验
+CommonValidators.url()
+
+// 密码强度校验
+CommonValidators.password(
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSpecialChar: false,
+)
+
+// 确认密码匹配
+CommonValidators.match(() => passwordValue, message: '两次密码不一致')
+
+// 身份证号校验（中国）
+CommonValidators.idCard()
+
+// 纯数字
+CommonValidators.numeric()
+
+// 纯字母
+CommonValidators.alpha()
+
+// 字母数字
+CommonValidators.alphanumeric()
+
+// 整数
+CommonValidators.integer()
+
+// 正数
+CommonValidators.positive()
+
+// 条件校验（当条件满足时才校验）
+CommonValidators.when(
+  () => shouldValidate,
+  CommonValidators.required(),
+)
+
 // 组合多个校验器
 CommonValidators.combine([
   CommonValidators.required(),
@@ -407,10 +466,10 @@ final allValues = formState.getValues();
 await manager.validateField('username');
 await manager.validateAll();
 
-// 重置表单
+// 重置表单（恢复到初始值）
 manager.reset();
 
-// 清除表单
+// 清除表单（清空所有值）
 manager.clear();
 
 // 设置字段错误
@@ -418,6 +477,13 @@ manager.setFieldError('username', '用户名已存在');
 
 // 启用/禁用字段
 manager.setFieldEnabled('username', false);
+
+// 设置字段可见性
+manager.setFieldVisible('optionalField', false);  // 隐藏字段
+manager.setFieldVisible('optionalField', true);   // 显示字段
+
+// 注销字段（动态移除）
+manager.unregisterField('dynamicField');
 
 // 批量更新表单值（patch）- 一次性设置多个字段，自动触发联动
 manager.patch({

@@ -21,6 +21,19 @@ class SmFormSubmitButton extends ConsumerWidget {
 
   /// 提交失败回调
   final void Function(Object error)? onError;
+  
+  /// 验证失败回调
+  final VoidCallback? onValidationFailed;
+  
+  /// 是否在提交前验证（默认 true）
+  /// 设置为 false 时，isValid 不会影响按钮状态，只在提交时验证
+  final bool validateBeforeSubmit;
+  
+  /// 加载指示器
+  final Widget? loadingIndicator;
+  
+  /// 子组件（如果提供则忽略 text）
+  final Widget? child;
 
   const SmFormSubmitButton({
     super.key,
@@ -30,6 +43,10 @@ class SmFormSubmitButton extends ConsumerWidget {
     this.style,
     this.onSuccess,
     this.onError,
+    this.onValidationFailed,
+    this.validateBeforeSubmit = true,
+    this.loadingIndicator,
+    this.child,
   });
 
   @override
@@ -38,29 +55,43 @@ class SmFormSubmitButton extends ConsumerWidget {
     final manager = ref.read(formManagerProvider(formId).notifier);
 
     final isSubmitting = formState.submitting;
-    final isValid = formState.isValid;
+    
+    // 只有在需要提交前验证且表单已经过验证时才考虑 isValid
+    // 这样新表单不会因为 isValid 为 true（未验证时的默认值）而误导
+    final bool canSubmit;
+    if (validateBeforeSubmit && formState.validated) {
+      canSubmit = formState.isValid && !isSubmitting;
+    } else {
+      // 未验证过的表单始终允许点击提交（会触发验证）
+      canSubmit = !isSubmitting;
+    }
 
     Future<void> handleSubmit() async {
       if (onSubmit == null) return;
 
       try {
         final result = await manager.submit(onSubmit: onSubmit!);
-        onSuccess?.call(result);
+        if (result != null) {
+          onSuccess?.call(result);
+        } else {
+          // 验证失败
+          onValidationFailed?.call();
+        }
       } catch (e) {
         onError?.call(e);
       }
     }
 
     return ElevatedButton(
-      onPressed: (isSubmitting || !isValid) ? null : handleSubmit,
+      onPressed: canSubmit ? handleSubmit : null,
       style: style,
       child: isSubmitting
-          ? const SizedBox(
+          ? loadingIndicator ?? const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(text),
+          : child ?? Text(text),
     );
   }
 }

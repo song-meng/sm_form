@@ -14,6 +14,9 @@ export 'src/validators/common_validators.dart';
 // 监听器
 export 'src/listeners/form_listener.dart';
 
+// 工具类
+export 'src/utils/field_converter.dart';
+
 // Widgets
 export 'src/widgets/sm_form.dart';
 export 'src/widgets/sm_form_field.dart';

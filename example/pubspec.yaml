@@ -35,7 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   hooks_riverpod: ^2.5.1
-  flutter_hooks: ^0.20.5
+  flutter_hooks: ^0.21.0
   sm_form:
     path: ../
 

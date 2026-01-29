@@ -4,6 +4,7 @@ import '../form_manager.dart';
 import '../models/form_field_model.dart' as form_models;
 import '../models/form_state.dart' as form_state;
 import '../models/form_dependency.dart';
+import '../utils/field_converter.dart';
 
 /// 支持联动的表单组件
 class SmFormWithDependency extends ConsumerStatefulWidget {
@@ -49,15 +50,28 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
       _initializeForm();
     });
   }
+  
+  @override
+  void didUpdateWidget(SmFormWithDependency oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 如果 formId 变化，重新初始化
+    if (oldWidget.formId != widget.formId) {
+      _initialized = false;
+      _listenedDependencies.clear();
+      _optionsProviders.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeForm();
+      });
+    }
+  }
 
   void _initializeForm() {
-    // 初始化基础表单
+    if (_initialized) return;
+    
+    // 使用 FieldConverter 批量转换并注册字段
     final manager = ref.read(formManagerProvider(widget.formId).notifier);
-    for (final entry in widget.fields.entries) {
-      final field = entry.value;
-      final dynamicField = _convertToDynamicField(field);
-      manager.registerField<dynamic>(dynamicField);
-    }
+    final dynamicFields = FieldConverter.convertAll(widget.fields);
+    manager.registerFields(dynamicFields);
 
     _initialized = true;
     widget.onInitialized?.call();
@@ -85,21 +99,45 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
           }
         }
 
-        // 如果没有匹配的规则，检查是否需要清除值
+        // 如果没有匹配的规则，检查是否需要清除值或隐藏
         if (matchedRule == null) {
-          // 检查所有依赖字段，如果都不满足条件，可能需要清除值
           for (final rule in dependency.rules) {
             depValue = next.getValue(rule.dependsOn);
-            if (!rule.condition(depValue) && rule.clearValue) {
+            final prevDepValue = previous.getValue(rule.dependsOn);
+            
+            // 只在值变化时处理
+            if (depValue != prevDepValue && !rule.condition(depValue)) {
               final manager = ref.read(formManagerProvider(widget.formId).notifier);
-              manager.updateValue(dependency.fieldName, null);
+              
+              // 如果之前满足条件现在不满足，需要还原状态
+              if (rule.visible == true) {
+                // 之前显示，现在隐藏
+                manager.setFieldVisible(dependency.fieldName, false);
+                if (rule.clearValue) {
+                  manager.updateValue(dependency.fieldName, null);
+                }
+              }
+              if (rule.required == true) {
+                // 之前必填，现在取消必填
+                _updateFieldRequired(dependency.fieldName, false);
+              }
             }
           }
-        } else if (depValue != null) {
+        } else {
           _applyRule(dependency.fieldName, matchedRule, depValue);
         }
       },
     );
+  }
+  
+  void _updateFieldRequired(String fieldName, bool required) {
+    final manager = ref.read(formManagerProvider(widget.formId).notifier);
+    final formState = ref.read(formManagerProvider(widget.formId));
+    final field = formState.fields[fieldName];
+    if (field != null && field.required != required) {
+      final updatedField = field.copyWith(required: required);
+      manager.registerField<dynamic>(updatedField);
+    }
   }
 
   void _applyRule(
@@ -112,7 +150,7 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
 
     // 更新显示/隐藏
     if (rule.visible != null) {
-      manager.setFieldEnabled(fieldName, rule.visible!);
+      manager.setFieldVisible(fieldName, rule.visible!);
       if (!rule.visible! && rule.clearValue) {
         // 隐藏时清除值
         manager.updateValue(fieldName, null);
@@ -121,27 +159,25 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
 
     // 更新必填状态
     if (rule.required != null) {
-      final field = formState.fields[fieldName];
-      if (field != null) {
-        final updatedField = field.copyWith(required: rule.required);
-        manager.registerField<dynamic>(updatedField);
-      }
+      _updateFieldRequired(fieldName, rule.required!);
     }
 
     // 更新字段值
     if (rule.updateValue != null) {
       final newValue = rule.updateValue!(depValue);
       manager.updateValue(fieldName, newValue);
-    } else if (rule.clearValue) {
-      // 如果规则要求清除值
-      manager.updateValue(fieldName, null);
+    } else if (rule.clearValue && rule.visible != false) {
+      // 只有在不是因为隐藏而清除值时才执行
+      // 隐藏时的清除已经在上面处理了
     }
 
     // 存储选项更新函数（用于动态选项）
     if (rule.updateOptions != null) {
       _optionsProviders[fieldName] = rule.updateOptions!;
-      // 通知组件更新（通过状态变化）
-      setState(() {});
+      // 通知组件更新
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -152,54 +188,6 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
       return provider(depValue);
     }
     return null;
-  }
-
-  /// 将 FormFieldModel 转换为 FormFieldModel<dynamic>
-  form_models.FormFieldModel<dynamic> _convertToDynamicField(
-    form_models.FormFieldModel field,
-  ) {
-    final dynamicValidators = <form_models.FormFieldValidator<dynamic>>[];
-
-    final fieldDynamic = field as dynamic;
-    final validatorsList = fieldDynamic.validators as List;
-
-    for (final validator in validatorsList) {
-      final validatorFunc = validator as Function;
-      dynamicValidators.add((dynamic value) {
-        try {
-          final result = validatorFunc(value);
-          return result as String?;
-        } catch (e) {
-          return null;
-        }
-      });
-    }
-
-    return form_models.FormFieldModel<dynamic>(
-      name: field.name,
-      value: field.value,
-      initialValue: field.initialValue,
-      required: field.required,
-      validators: dynamicValidators,
-      label: field.label,
-      hint: field.hint,
-      dependencies: field.dependencies,
-      onChanged: field.onChanged != null
-          ? (dynamic value) {
-              try {
-                final onChangedFunc = field.onChanged as Function;
-                onChangedFunc(value);
-              } catch (e) {
-                // 忽略类型转换错误
-              }
-            }
-          : null,
-      onFocusChange: field.onFocusChange,
-    )
-      ..validated = field.validated
-      ..errorText = field.errorText
-      ..disabled = field.disabled
-      ..readOnly = field.readOnly;
   }
 
   @override
