@@ -50,7 +50,7 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
       _initializeForm();
     });
   }
-  
+
   @override
   void didUpdateWidget(SmFormWithDependency oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -67,7 +67,7 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
 
   void _initializeForm() {
     if (_initialized) return;
-    
+
     // 使用 FieldConverter 批量转换并注册字段
     final manager = ref.read(formManagerProvider(widget.formId).notifier);
     final dynamicFields = FieldConverter.convertAll(widget.fields);
@@ -104,11 +104,11 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
           for (final rule in dependency.rules) {
             depValue = next.getValue(rule.dependsOn);
             final prevDepValue = previous.getValue(rule.dependsOn);
-            
+
             // 只在值变化时处理
             if (depValue != prevDepValue && !rule.condition(depValue)) {
               final manager = ref.read(formManagerProvider(widget.formId).notifier);
-              
+
               // 如果之前满足条件现在不满足，需要还原状态
               if (rule.visible == true) {
                 // 之前显示，现在隐藏
@@ -129,7 +129,7 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
       },
     );
   }
-  
+
   void _updateFieldRequired(String fieldName, bool required) {
     final manager = ref.read(formManagerProvider(widget.formId).notifier);
     final formState = ref.read(formManagerProvider(widget.formId));
@@ -146,7 +146,7 @@ class _SmFormWithDependencyState extends ConsumerState<SmFormWithDependency> {
     dynamic depValue,
   ) {
     final manager = ref.read(formManagerProvider(widget.formId).notifier);
-    final formState = ref.read(formManagerProvider(widget.formId));
+    ref.read(formManagerProvider(widget.formId));
 
     // 更新显示/隐藏
     if (rule.visible != null) {
